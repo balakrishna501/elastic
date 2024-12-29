@@ -1,3 +1,5 @@
+package com.example.logagent;
+
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
@@ -12,7 +14,7 @@ import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.ArrayList;
@@ -23,15 +25,15 @@ import java.util.concurrent.TimeUnit;
 @Plugin(name = "OpenSearchAppender", category = "Core", elementType = "appender", printObject = true)
 public class OpenSearchAppender extends AbstractAppender {
 
-    private static final LinkedBlockingQueue<LogEvent> eventQueue = new LinkedBlockingQueue<>();
+    private static final ConcurrentLinkedQueue<LogEvent> eventQueue = new ConcurrentLinkedQueue<>();
     private static OpenSearchClient openSearchClient;
     private final ExecutorService executorService;
 
     @Autowired
     public OpenSearchAppender(String name, PatternLayout layout) {
         super(name, null, layout, false);
-        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
-        for (int i = 0; i < Runtime.getRuntime().availableProcessors() * 2; i++) {
+        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4);  // Increase thread pool size for higher throughput
+        for (int i = 0; i < Runtime.getRuntime().availableProcessors() * 4; i++) {
             this.executorService.submit(this::processLogs);
         }
     }
@@ -51,16 +53,20 @@ public class OpenSearchAppender extends AbstractAppender {
 
     private void processLogs() {
         List<LogEvent> eventBatch = new ArrayList<>();
-        int batchSize = 500;  // Adjust the batch size as needed
+        int batchSize = 1000;  // Adjust batch size as needed
 
         while (true) {
             try {
-                LogEvent event = eventQueue.poll(100, TimeUnit.MILLISECONDS);
-                if (event != null) {
-                    eventBatch.add(event);
+                while (eventBatch.size() < batchSize) {
+                    LogEvent event = eventQueue.poll();
+                    if (event != null) {
+                        eventBatch.add(event);
+                    } else {
+                        break;
+                    }
                 }
 
-                if (eventBatch.size() >= batchSize || (event == null && !eventBatch.isEmpty())) {
+                if (!eventBatch.isEmpty()) {
                     List<BulkOperation> bulkOperations = eventBatch.stream()
                             .map(e -> BulkOperation.of(b -> b
                                 .index(idx -> idx
@@ -71,11 +77,15 @@ public class OpenSearchAppender extends AbstractAppender {
 
                     BulkRequest request = new BulkRequest.Builder().operations(bulkOperations).build();
                     BulkResponse bulkResponse = openSearchClient.bulk(request);
-                    eventBatch.clear();
 
                     if (bulkResponse.errors()) {
                         System.err.println("Errors occurred while indexing logs: " + bulkResponse.toString());
+                        // Implement retry logic for failed operations if necessary
                     }
+
+                    eventBatch.clear();
+                } else {
+                    TimeUnit.MILLISECONDS.sleep(10);  // Avoid busy-waiting
                 }
             } catch (Exception e) {
                 e.printStackTrace();
