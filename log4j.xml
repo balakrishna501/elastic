@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN" packages="com.example.logagent">
     <Appenders>
-        <Async name="Async" bufferSize="4096">
+        <Async name="Async" bufferSize="65536">  <!-- Increased buffer size -->
             <OpenSearchAppender name="OpenSearchAppender" layout="PatternLayout">
                 <PatternLayout pattern="%d [%t] %-5level: %msg%n%throwable" />
             </OpenSearchAppender>
