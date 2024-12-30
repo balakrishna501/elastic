@@ -1,12 +1,8 @@
 package com.example.logagent;
 
-import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.appender.AbstractAppender;
-import org.apache.logging.log4j.core.config.plugins.Plugin;
-import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
-import org.apache.logging.log4j.core.config.plugins.PluginElement;
-import org.apache.logging.log4j.core.config.plugins.PluginFactory;
-import org.apache.logging.log4j.core.layout.PatternLayout;
+import ch.qos.logback.core.AppenderBase;
+import ch.qos.logback.core.spi.DeferredProcessingAware;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch.core.bulk.BulkRequest;
 import org.opensearch.client.opensearch.core.bulk.BulkResponse;
@@ -22,29 +18,23 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.concurrent.TimeUnit;
 
-@Plugin(name = "OpenSearchAppender", category = "Core", elementType = "appender", printObject = true)
-public class OpenSearchAppender extends AbstractAppender {
+@Component
+public class OpenSearchAppender extends AppenderBase<ILoggingEvent> implements DeferredProcessingAware {
 
-    private static final ConcurrentLinkedQueue<LogEvent> eventQueue = new ConcurrentLinkedQueue<>();
+    private static final ConcurrentLinkedQueue<ILoggingEvent> eventQueue = new ConcurrentLinkedQueue<>();
     private static OpenSearchClient openSearchClient;
     private final ExecutorService executorService;
 
     @Autowired
-    public OpenSearchAppender(String name, PatternLayout layout) {
-        super(name, null, layout, false);
+    public OpenSearchAppender() {
         this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4);  // Increase thread pool size for higher throughput
         for (int i = 0; i < Runtime.getRuntime().availableProcessors() * 4; i++) {
             this.executorService.submit(this::processLogs);
         }
     }
 
-    @PluginFactory
-    public static OpenSearchAppender createAppender(@PluginAttribute("name") String name, @PluginElement("Layout") PatternLayout layout) {
-        return new OpenSearchAppender(name, layout);
-    }
-
     @Override
-    public void append(LogEvent event) {
+    protected void append(ILoggingEvent event) {
         if (openSearchClient == null) {
             openSearchClient = SpringApplicationContext.getBean(OpenSearchClient.class);
         }
@@ -52,13 +42,13 @@ public class OpenSearchAppender extends AbstractAppender {
     }
 
     private void processLogs() {
-        List<LogEvent> eventBatch = new ArrayList<>();
+        List<ILoggingEvent> eventBatch = new ArrayList<>();
         int batchSize = 1000;  // Adjust batch size as needed
 
         while (true) {
             try {
                 while (eventBatch.size() < batchSize) {
-                    LogEvent event = eventQueue.poll();
+                    ILoggingEvent event = eventQueue.poll();
                     if (event != null) {
                         eventBatch.add(event);
                     } else {
@@ -71,7 +61,7 @@ public class OpenSearchAppender extends AbstractAppender {
                             .map(e -> BulkOperation.of(b -> b
                                 .index(idx -> idx
                                     .index("logs-index")
-                                    .document(new String(getLayout().toByteArray(e)))
+                                    .document(layout.doLayout(e))
                                 )
                             )).collect(Collectors.toList());
 
