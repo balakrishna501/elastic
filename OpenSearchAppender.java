@@ -1,13 +1,13 @@
 package com.example.logagent;
 
 import ch.qos.logback.core.AppenderBase;
-import ch.qos.logback.core.spi.DeferredProcessingAware;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch.core.bulk.BulkRequest;
 import org.opensearch.client.opensearch.core.bulk.BulkResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
 import java.util.concurrent.TimeUnit;
 
 @Component
-public class OpenSearchAppender extends AppenderBase<ILoggingEvent> implements DeferredProcessingAware {
+@DependsOn("springApplicationContext")
+public class OpenSearchAppender extends AppenderBase<ILoggingEvent> {
 
     private static final ConcurrentLinkedQueue<ILoggingEvent> eventQueue = new ConcurrentLinkedQueue<>();
     private static OpenSearchClient openSearchClient;
@@ -39,6 +40,26 @@ public class OpenSearchAppender extends AppenderBase<ILoggingEvent> implements D
             openSearchClient = SpringApplicationContext.getBean(OpenSearchClient.class);
         }
         eventQueue.offer(event);
+    }
+
+    @Override
+    public void start() {
+        super.start();
+        // Add any initialization code here
+    }
+
+    @Override
+    public void stop() {
+        super.stop();
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException ex) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     private void processLogs() {
