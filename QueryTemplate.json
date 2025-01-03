@@ -1,0 +1,241 @@
+{
+	"queryTemplates" : {
+		"fetchReportingHierarchy" : {
+			"index" : "reportinghierarchy",
+			"query" : {},
+			"subQuery" : {},
+			"sortKey" : "createDate"
+		},
+		"fetchActorTransaction" : {
+			"index" : "transaction",
+			"query" : {},
+			"subQuery" : {},
+			"sortKey" : "trnDate"
+		},
+		"fetchAgency" : {
+			"index" : "agency",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchAgent" : {
+			"index" : "agent",
+			"sortKey" : "createDate",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchAggregator" : {
+			"index" : "aggregator",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchBank" : {
+			"index" : "bank",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchBiller" : {
+			"index" : "biller",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchCorporate" : {
+			"index" : "corpsubscriber",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchGlobeBank" : {
+			"index" : "globebank",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchRetail" : {
+			"index" : "subscriber",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchTasks" : {
+			"index" : "task",
+			"query" : {},
+			"subQuery" : {},
+			"sortKey" : "createdOn"
+		},
+		"fetchTeller" : {
+			"index" : "teller",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchTransaction" : {
+			"index" : "transaction",
+			"query" : {},
+			"sortKey" : "trnDate",
+			"queryParams" : [{}]
+		},
+		"fetchUsers" : {
+			"index" : "user",
+			"query" : {},
+			"subQuery" : {},
+			"sortKey" : "modifiedDate"
+		},
+		"fetchMerchantPayments" : {
+			"index" : "merchantpayment",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchJournalAdjustment" : {
+			"index" : "journaladjustment",
+			"query" : {},
+			"subQuery" : {}
+		},"fetchFeedback" : {
+			"index" : "feedback",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchAgentAgg" : {
+			"index" : "agent",
+			"query" : {
+				"aggs" : [{
+							"field" : "status",
+							"terms" : "status"
+						}, {
+							"field" : "createdDate",
+							"terms" : "new",
+							"value" : "30~D"
+						}]
+			},
+			"subQuery" : {}
+		},
+		"fetchAgencyAgg" : {
+			"index" : "agency",
+			"query" : {
+				"aggs" : [{
+							"field" : "status",
+							"terms" : "status"
+						}, {
+							"field" : "createdDate",
+							"terms" : "new",
+							"value" : "30~D"
+						}]
+			},
+			"subQuery" : {}
+		},
+		"fetchMerchantAgg" : {
+			"index" : "agent",
+			"query" : {
+				"aggs" : [{
+							"field" : "status",
+							"terms" : "status"
+						}, {
+							"field" : "createdDate",
+							"terms" : "new",
+							"value" : "30~D"
+						}]
+			},
+			"subQuery" : {}
+		},
+		"fetchRetailAgg" : {
+			"index" : "subscriber",
+			"query" : {
+				"aggs" : [{
+							"field" : "status",
+							"terms" : "status"
+						}, {
+							"field" : "createdDate",
+							"terms" : "new",
+							"value" : "30~D"
+						}, {
+							"field" : "kycStatus",
+							"terms" : "kyc"
+						}, {
+							"field" : "offer",
+							"terms" : "offer"
+						}]
+			},
+			"subQuery" : {}
+		},
+		"fetchTaskAgg" : {
+			"index" : "task",
+			"query" : {
+				"aggs" : [{
+							"field" : "status",
+							"terms" : "status"
+						}]
+			},
+			"subQuery" : {}
+		},
+		"fetchPartnerManager" : {
+			"index" : "partnermanager",
+			"query" : [{}],
+			"subQuery" : [{}]
+		},
+		"fetchTranAggByDate" : {
+			"index" : "transaction",
+			"query" : {
+				"aggs" : [{
+							"field" : "trnType",
+							"terms" : "type"
+						}, {
+							"field" : "channel",
+							"terms" : "channel"
+						}, {
+							"field" : "trnStatus",
+							"terms" : "status"
+						}, {
+							"field" : "trnDate",
+							"terms" : "day",
+							"subaggs" : [{
+										"field" : "trnStatus",
+										"terms" : "status"
+									}, {
+										"field" : "trnType",
+										"terms" : "type",
+										"subaggs" : [{
+													"field" : "trnStatus",
+													"terms" : "status"
+												}]
+									}, {
+										"field" : "channel",
+										"terms" : "channel",
+										"subaggs" : [{
+													"field" : "trnStatus",
+													"terms" : "status"
+												}]
+									}]
+						}]
+			},
+			"subQuery" : {}
+		},
+		"fetchTranAgg" : {
+			"index" : "transaction",
+			"query" : {
+				"aggs" : [{
+							"field" : "trnStatus",
+							"terms" : "status",
+							"subaggs" : [{
+										"field" : "channel",
+										"terms" : "channel",
+										"subaggs" : [{
+													"field" : "trnStatus",
+													"terms" : "status",
+													"subaggs" : [{
+																"field" : "trnAmt",
+																"terms" : "value"
+															}]
+												}]
+									}]
+						}]
+			},
+			"subQuery" : {}
+		},
+		"fetchChannelDefinitions" : {
+			"index" : "channeldefinition",
+			"query" : {},
+			"subQuery" : {}
+		},
+		"fetchTasksForSuperAdmin" : {
+		    "index" : "task",
+			"query" : {},
+			"subQuery" : {},
+			"sortKey" : "createdOn"
+		}
+	}
+}
